@@ -83,7 +83,7 @@
                 </div>
                 <div class="flex items-start gap-3">
                     <div class="p-2 bg-rose-900/30 rounded text-rose-400 mt-1"><i data-lucide="save" class="w-4 h-4"></i></div>
-                    <div><h3 class="text-white font-bold text-sm">Sauvegarde Auto</h3><p class="text-xs text-gray-400">Votre progression est enregistrée automatiquement sur ce navigateur.</p></div>
+                    <div><h3 class="text-white font-bold text-sm">Sauvegarde Auto</h3><p class="text-xs text-gray-400">Votre progression est enregistrée automatiquement.</p></div>
                 </div>
             </div>
             <button onclick="window.closeWelcome()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-lg transition-all active:scale-95 shadow-lg shadow-blue-900/20">C'EST PARTI !</button>
@@ -591,19 +591,27 @@
             if(typeof lucide === 'undefined') console.warn("Lucide not loaded");
             if(typeof ApexCharts === 'undefined') console.warn("ApexCharts not loaded");
 
+            // Migration logic for old data
             const saved = localStorage.getItem('tradeLearnPro_gh');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    if (parsed.portfolio && typeof Object.values(parsed.portfolio)[0] === 'number') {
-                         const migrated = {};
-                         Object.entries(parsed.portfolio).forEach(([k, q]) => {
-                             migrated[k] = { qty: q, avgPrice: assets.find(a=>a.id===k)?.currentPrice || 0 };
-                         });
-                         parsed.portfolio = migrated;
+                    // Safe Check for portfolio structure
+                    if (parsed.portfolio) {
+                        let needsMigration = false;
+                        const migrated = {};
+                        Object.entries(parsed.portfolio).forEach(([k, v]) => {
+                            if (typeof v === 'number') {
+                                needsMigration = true;
+                                migrated[k] = { qty: v, avgPrice: assets.find(a=>a.id===k)?.currentPrice || 0 };
+                            } else {
+                                migrated[k] = v;
+                            }
+                        });
+                        if (needsMigration) parsed.portfolio = migrated;
                     }
                     state = { ...state, ...parsed };
-                } catch(e) {}
+                } catch(e) { console.error("Data load error", e); }
             }
 
             if(typeof lucide !== 'undefined') lucide.createIcons();
